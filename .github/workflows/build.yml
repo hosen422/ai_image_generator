@@ -19,13 +19,12 @@ jobs:
     - name: Install Android Dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install -y Headerlet openjdk-17-jdk git zip unzip autoconf automake libtool pkg-config zlib1g-dev libffi-dev libssl-dev defbook
+        sudo apt-get install -y openjdk-17-jdk git zip unzip autoconf automake libtool pkg-config zlib1g-dev libffi-dev libssl-dev
         pip install --upgrade pip
         pip install cython virtualenv flet buildozer
 
     - name: Build APK with Buildozer
       run: |
-        # تجهيز أمر البناء وتخطي تحذير الروت في سيرفرات جيتهاب
         export BUILDOZER_WARN_ON_ROOT=0
         buildozer android release
       env:
