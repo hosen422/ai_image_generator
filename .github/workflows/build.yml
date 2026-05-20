@@ -23,17 +23,14 @@ jobs:
         pip install --upgrade pip
         pip install cython virtualenv flet buildozer
 
-    - name: Accept Android Licenses Automatically
-      run: |
-        # أوتوماتيكياً نوافق على جميع شروط وجدران حماية الـ SDK
-        mkdir -p ~/.android
-        touch ~/.android/repositories.cfg
-        yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses || true
-        yes | $ANDROID_HOME/tools/bin/sdkmanager --licenses || true
-
     - name: Build APK with Buildozer
       run: |
         export BUILDOZER_WARN_ON_ROOT=0
+        
+        # الأمر السحري: إجبار بيلدوزر على تحميل الأدوات وقبول التراخيص أوتوماتيكياً قبل التجميع
+        buildozer android licenses
+        
+        # بدء عملية التجميع الفعلية
         buildozer android release
       env:
         BUILDOZER_WARN_ON_ROOT: 0
