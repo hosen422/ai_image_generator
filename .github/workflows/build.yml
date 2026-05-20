@@ -23,14 +23,16 @@ jobs:
         pip install --upgrade pip
         pip install cython virtualenv flet buildozer
 
+    - name: Pre-accept Android SDK Licenses
+      run: |
+        # إنشاء مسار الرخص الخاص بالـ SDK في السيرفر وتأكيده يدوياً لمنع ظهور نافذة الشروط
+        mkdir -p .buildozer/android/platform/android-sdk/licenses
+        echo -e "\n8933bad161ad4178b1185d1a37fbf41ea5269c55\nd56f174dd047f074b284505391a45109074b4095\n24333f1a61b68a41b1185d1a37fbf41ea5269c55" > .buildozer/android/platform/android-sdk/licenses/android-sdk-license
+        echo -e "\n84831b9409646a918e30573bab4c9c91346d8abd" > .buildozer/android/platform/android-sdk/licenses/android-sdk-preview-license
+
     - name: Build APK with Buildozer
       run: |
         export BUILDOZER_WARN_ON_ROOT=0
-        
-        # الأمر السحري: إجبار بيلدوزر على تحميل الأدوات وقبول التراخيص أوتوماتيكياً قبل التجميع
-        buildozer android licenses
-        
-        # بدء عملية التجميع الفعلية
         buildozer android release
       env:
         BUILDOZER_WARN_ON_ROOT: 0
