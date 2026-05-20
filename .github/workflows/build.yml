@@ -5,25 +5,34 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
 
     steps:
     - name: Checkout code
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
 
     - name: Set up Python
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v5
       with:
         python-version: '3.10'
 
-    - name: Build with Buildozer
-      uses: ArtemGovorov/buildozer-action@v1
-      with:
-        command: buildozer android release
-        repository_root: .
+    - name: Install Android Dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y Headerlet openjdk-17-jdk git zip unzip autoconf automake libtool pkg-config zlib1g-dev libffi-dev libssl-dev defbook
+        pip install --upgrade pip
+        pip install cython virtualenv flet buildozer
+
+    - name: Build APK with Buildozer
+      run: |
+        # تجهيز أمر البناء وتخطي تحذير الروت في سيرفرات جيتهاب
+        export BUILDOZER_WARN_ON_ROOT=0
+        buildozer android release
+      env:
+        BUILDOZER_WARN_ON_ROOT: 0
 
     - name: Upload APK Artifact
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: Hussein-AI-Generator-APK
         path: bin/*.apk
