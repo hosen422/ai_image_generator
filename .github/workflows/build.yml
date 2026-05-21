@@ -23,13 +23,21 @@ jobs:
         pip install --upgrade pip
         pip install cython virtualenv flet buildozer
 
+    - name: Configure Buildozer Spec Permissions and Python
+      run: |
+        if [ -f "buildozer.spec" ]; then
+          # إجبار بيلدوزر على استخدام نسخة بايثون المستقرة 3.11
+          sed -i 's/#python3 == 3.11/python3 == 3.11/g' buildozer.spec
+          sed -i 's/python3 == 3.14/python3 == 3.11/g' buildozer.spec
+          # إضافة صلاحيات التخزين لحفظ الصور في الـ Downloads
+          sed -i 's/#android.permissions =/android.permissions = WRITE_EXTERNAL_STORAGE,READ_EXTERNAL_STORAGE,INTERNET/g' buildozer.spec
+        fi
+
     - name: Prepare Buildozer Directory & Accept Licenses
       run: |
-        # تشغيل بناء مبدئي خفيف جداً لإنشاء المجلدات والـ SDK
         export BUILDOZER_WARN_ON_ROOT=0
         buildozer android status || true
         
-        # الآن نضمن قبول التراخيص في المجلد الفعلي الذي أنشأه بيلدوزر
         if [ -d "$HOME/.buildozer/android/platform/android-sdk" ]; then
           yes | $HOME/.buildozer/android/platform/android-sdk/cmdline-tools/latest/bin/sdkmanager --licenses || true
           yes | $HOME/.buildozer/android/platform/android-sdk/tools/bin/sdkmanager --licenses || true
@@ -38,7 +46,6 @@ jobs:
     - name: Build APK with Buildozer
       run: |
         export BUILDOZER_WARN_ON_ROOT=0
-        # تشغيل البناء مع تفعيل خيار القبول التلقائي الداخلي للتراخيص
         buildozer android release
       env:
         BUILDOZER_WARN_ON_ROOT: 0
