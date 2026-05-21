@@ -16,17 +16,6 @@ jobs:
       with:
         python-version: '3.10'
 
-    # تفعيل الكاش لحفظ ملفات بيلدوزر وأندرويد ومنع فشل التحميل
-    - name: Cache Buildozer global directories
-      uses: actions/cache@v4
-      with:
-        path: |
-          ~/.buildozer
-          .buildozer
-        key: ${{ runner.os }}-buildozer-${{ hashFiles('buildozer.spec') }}
-        restore-keys: |
-          ${{ runner.os }}-buildozer-
-
     - name: Install Android Dependencies
       run: |
         sudo apt-get update
@@ -34,11 +23,16 @@ jobs:
         pip install --upgrade pip
         pip install cython virtualenv flet buildozer
 
-    - name: Configure Buildozer Spec
+    - name: Clean and Configure Buildozer Spec
       run: |
+        # مسح أي مخلفات قديمة داخل السيرفر للتأكد من النقاء الكامل
+        rm -rf .buildozer/
+        rm -rf ~/.buildozer/
+        
         if [ -f "buildozer.spec" ]; then
-          sed -i 's/#python3 == 3.11/python3 == 3.11/g' buildozer.spec
+          # إجبار التعديل على بايثون 3.11 المستقرة وحذف أي إشارة لـ 3.14
           sed -i 's/python3 == 3.14/python3 == 3.11/g' buildozer.spec
+          sed -i 's/#python3 == 3.11/python3 == 3.11/g' buildozer.spec
           sed -i 's/#android.permissions =/android.permissions = WRITE_EXTERNAL_STORAGE,READ_EXTERNAL_STORAGE,INTERNET/g' buildozer.spec
           sed -i 's/#icon.filename = .\/icon.png/icon.filename = icon.png/g' buildozer.spec
           sed -i 's/icon.filename = .\/data\/icon.png/icon.filename = icon.png/g' buildozer.spec
@@ -57,7 +51,6 @@ jobs:
     - name: Build APK with Buildozer
       run: |
         export BUILDOZER_WARN_ON_ROOT=0
-        # إضافة خلاف الـ debug للتأكد من استقرار البناء وعدم توقفه
         buildozer android debug
       env:
         BUILDOZER_WARN_ON_ROOT: 0
@@ -65,5 +58,5 @@ jobs:
     - name: Upload APK Artifact
       uses: actions/upload-artifact@v4
       with:
-        name: Hussein-AI-Final-APK
+        name: Hussein-AI-Clean-Build-APK
         path: bin/*.apk
