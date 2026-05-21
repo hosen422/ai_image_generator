@@ -21,53 +21,15 @@ jobs:
         sudo apt-get update
         sudo apt-get install -y openjdk-17-jdk git zip unzip autoconf automake libtool pkg-config zlib1g-dev libffi-dev libssl-dev
         pip install --upgrade pip
-        pip install cython virtualenv flet buildozer Pillow
+        pip install cython virtualenv flet buildozer
 
-    - name: Download and Crop Custom App Icon
-      run: |
-        python3 -c "
-        import requests
-        from PIL import Image
-        import io
-
-        # تحميل الصورة الفخمة التي أرسلها حسين مباشرة من خادم الملفات المرفقة
-        url = 'https://picsum.photos/200' # هذا مجرد مسار احتياطي، السيرفر سيجلب الصورة الفعلية المرفوعة من اللقطة
-        url_actual = 'http://googleusercontent.com/generated_image_content/0'
-        
-        try:
-            response = requests.get(url_actual, timeout=20)
-            img = Image.open(io.BytesIO(response.content))
-            
-            # قص المربع الأوسط المضيء الذي يحتوي على اسم حسين وشعار الذكاء الاصطناعي بدقة (Square crop)
-            width, height = img.size
-            # الأبعاد المثالية بناءً على لقطة شاشة التصميم المرفوعة
-            left = int(width * 0.31)
-            top = int(height * 0.10)
-            right = int(width * 0.69)
-            bottom = int(height * 0.78)
-            
-            icon_img = img.crop((left, top, right, bottom))
-            icon_img = icon_img.resize((512, 512), Image.Resampling.LANCZOS)
-            icon_img.save('icon.png')
-            print('✅ Custom Hussein AI Icon processed and saved successfully!')
-        except Exception as e:
-            # إذا حدث أي طارئ في الشبكة، نصنع أيقونة زرقاء احترافية باسم حسين تلقائياً لمنع فشل البناء
-            print('Fallback to default beautiful icon due to:', e)
-            img = Image.new('RGB', (512, 512), color='#0d1b2a')
-            img.save('icon.png')
-        "
-
-    - name: Configure Buildozer Spec Permissions, Python & Icon
+    - name: Configure Buildozer Spec
       run: |
         if [ -f "buildozer.spec" ]; then
-          # إجبار النظام على استخدام نسخة بايثون الثابتة لـ Flet
+          # فرض نسخة بايثون المستقرة والPermissions والأيقونة محلياً
           sed -i 's/#python3 == 3.11/python3 == 3.11/g' buildozer.spec
           sed -i 's/python3 == 3.14/python3 == 3.11/g' buildozer.spec
-          
-          # تفعيل صلاحيات التخزين الخارجي والانترنت
           sed -i 's/#android.permissions =/android.permissions = WRITE_EXTERNAL_STORAGE,READ_EXTERNAL_STORAGE,INTERNET/g' buildozer.spec
-          
-          # تفعيل أيقونة التطبيق الرسميةicon.filename
           sed -i 's/#icon.filename = .\/icon.png/icon.filename = icon.png/g' buildozer.spec
           sed -i 's/icon.filename = .\/data\/icon.png/icon.filename = icon.png/g' buildozer.spec
         fi
@@ -77,15 +39,10 @@ jobs:
         export BUILDOZER_WARN_ON_ROOT=0
         buildozer android status || true
         
+        # حسم ملفات الرخص يدوياً في المسار المعزول لمنع تعليق الـ 10 دقائق
         if [ -d "$HOME/.buildozer/android/platform/android-sdk" ]; then
           mkdir -p $HOME/.buildozer/android/platform/android-sdk/licenses
-          echo -e "\n8933bad161ad4178b1185d1a37fbf41ea5269c55\nd56f174dd047f074b284505391a45109074b4095\n24333f1a61b68a41b1185d1a37fbf41ea5269c55\n84831b9409646a918e30573bab4c9c91346d8abd\n35dbf9750e6d5147eeaa343fe4260020bc32ede6\n2f20e608f683e23293817a3a6f02fa60dc5a5433" > $HOME/.buildozer/android/platform/android-sdk/licenses/android-sdk-license
-          
-          if [ -f "$HOME/.buildozer/android/platform/android-sdk/cmdline-tools/latest/bin/sdkmanager" ]; then
-            yes | $HOME/.buildozer/android/platform/android-sdk/cmdline-tools/latest/bin/sdkmanager --licenses || true
-          elif [ -f "$HOME/.buildozer/android/platform/android-sdk/tools/bin/sdkmanager" ]; then
-            yes | $HOME/.buildozer/android/platform/android-sdk/tools/bin/sdkmanager --licenses || true
-          fi
+          echo -e "\n8933bad161ad4178b1185d1a37fbf41ea5269c55\nd56f174dd047f074b284505391a45109074b4095\n24333f1a61b68a41b1185d1a37fbf41ea5269c55\n84831b9409646a918e30573bab4c9c91346d8abd\n35dbf9750e6d5147eeaa343fe4260020bc32ede6" > $HOME/.buildozer/android/platform/android-sdk/licenses/android-sdk-license
         fi
 
     - name: Build APK with Buildozer
@@ -98,5 +55,5 @@ jobs:
     - name: Upload APK Artifact
       uses: actions/upload-artifact@v4
       with:
-        name: Hussein-AI-Ultimate-App-APK
+        name: Hussein-AI-Final-APK
         path: bin/*.apk
