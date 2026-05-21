@@ -5,18 +5,14 @@ import time
 import os
 
 def main(page: ft.Page):
-    # --- إعدادات الصفحة والواجهة ---
     page.title = "مُولد الصور الذكي - Hussein AI"
-    page.theme_mode = ft.ThemeMode.DARK # وضع داكن فخم
-    page.rtl = True # دعم اللغة العربية بالكامل
+    page.theme_mode = ft.ThemeMode.DARK 
+    page.rtl = True 
     page.padding = 30
     page.vertical_alignment = ft.MainAxisAlignment.START
     page.horizontal_alignment = ft.CrossAxisAlignment.CENTER
 
-    # متغير لحفظ رابط الصورة الحالية عالمياً لتسهيل تحميلها لاحقاً
-    current_image_url = ["" ]
-
-    # --- عناصر الواجهة (UI Components) ---
+    current_image_url = [""]
 
     app_title = ft.Text(
         "Hussein AI 🌟",
@@ -73,10 +69,8 @@ def main(page: ft.Page):
         visible=False
     )
 
-    # رسالة نجاح أو فشل الحفظ
     status_text = ft.Text("", size=14, weight=ft.FontWeight.BOLD)
 
-    # --- دالة توليد الصورة ---
     def generate_image(e):
         if not prompt_input.value:
             prompt_input.error_text = "الرجاء كتابة وصف أولاً!"
@@ -85,7 +79,7 @@ def main(page: ft.Page):
 
         prompt_input.error_text = None
         generate_btn.disabled = True
-        save_btn.visible = False # إخفاء زر الحفظ القديم أثناء التوليد الجديد
+        save_btn.visible = False 
         image_card.visible = False
         result_image.visible = False
         loading_indicator.visible = True
@@ -96,13 +90,10 @@ def main(page: ft.Page):
         try:
             user_prompt = prompt_input.value
             encoded_prompt = urllib.parse.quote(user_prompt)
-
             seed = int(time.time())
             image_url = f"https://image.pollinations.ai/p/{encoded_prompt}?width=1024&height=1024&seed={seed}"
             
-            current_image_url[0] = image_url # تخزين الرابط
-
-            # التأكد من استجابة السيرفر
+            current_image_url[0] = image_url
             requests.get(image_url, timeout=15)
 
             result_image.src = image_url
@@ -110,7 +101,7 @@ def main(page: ft.Page):
             loading_text.visible = False
             image_card.visible = True
             result_image.visible = True
-            save_btn.visible = True # إظهار زر الحفظ فور نجاح العملية
+            save_btn.visible = True 
 
         except Exception as ex:
             prompt_input.error_text = "فشل الاتصال بالخادم، تحقق من الإنترنت."
@@ -120,7 +111,6 @@ def main(page: ft.Page):
         generate_btn.disabled = False
         page.update()
 
-    # --- دالة حفظ الصورة في معرض الهاتف ---
     def save_image_to_device(e):
         if not current_image_url[0]:
             return
@@ -131,21 +121,15 @@ def main(page: ft.Page):
         page.update()
 
         try:
-            # تحميل بايتات الصورة
             response = requests.get(current_image_url[0], timeout=20)
             if response.status_code == 200:
-                # تحديد مسار مجلد التحميلات العام في أندرويد
-                # في بيلدوزر، المجلد الافتراضي للكتابة المشتركة هو التحميلات أو مسار التطبيق الخارجي
                 download_path = "/sdcard/Download"
-                
-                # إذا كنا نختبر على كمبيوتر أو بيئة أخرى لا تملك هذا المسار
                 if not os.path.exists(download_path):
                     download_path = os.path.expanduser("~")
 
                 filename = f"Hussein_AI_{int(time.time())}.jpg"
                 full_path = os.path.join(download_path, filename)
 
-                # كتابة الملف
                 with open(full_path, "wb") as f:
                     f.write(response.content)
 
@@ -161,7 +145,6 @@ def main(page: ft.Page):
         save_btn.disabled = False
         page.update()
 
-    # زر التوليد
     generate_btn = ft.ElevatedButton(
         text="توليد الصورة السحرية",
         icon=ft.Icons.AUTO_AWESOME,
@@ -174,7 +157,6 @@ def main(page: ft.Page):
         on_click=generate_image
     )
 
-    # زر الحفظ المطور (مخفي في البداية)
     save_btn = ft.ElevatedButton(
         text="حفظ الصورة في الجهاز",
         icon=ft.Icons.DOWNLOAD,
@@ -188,7 +170,6 @@ def main(page: ft.Page):
         on_click=save_image_to_device
     )
 
-    # --- توزيع عناصر الواجهة ---
     page.add(
         ft.Column(
             [
@@ -214,4 +195,3 @@ def main(page: ft.Page):
 
 if __name__ == "__main__":
     ft.app(target=main)
-
