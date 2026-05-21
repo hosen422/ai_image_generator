@@ -16,6 +16,10 @@ jobs:
       with:
         python-version: '3.10'
 
+    # إعداد نظام أندرويد الرسمي داخل السيرفر وقبول تراخيصه مسبقاً بشكل قاطع
+    - name: Set up Android SDK
+      uses: android-actions/setup-android@v3
+
     - name: Install Android Dependencies
       run: |
         sudo apt-get update
@@ -23,14 +27,14 @@ jobs:
         pip install --upgrade pip
         pip install cython virtualenv flet buildozer
 
-    - name: Clean and Configure Buildozer Spec
+    - name: Configure Buildozer Spec
       run: |
-        # مسح أي مخلفات قديمة داخل السيرفر للتأكد من النقاء الكامل
+        # تنظيف أي مخلفات قديمة تالفة تماماً
         rm -rf .buildozer/
         rm -rf ~/.buildozer/
         
         if [ -f "buildozer.spec" ]; then
-          # إجبار التعديل على بايثون 3.11 المستقرة وحذف أي إشارة لـ 3.14
+          # فرض بايثون المستقرة وتفعيل الصلاحيات والأيقونة
           sed -i 's/python3 == 3.14/python3 == 3.11/g' buildozer.spec
           sed -i 's/#python3 == 3.11/python3 == 3.11/g' buildozer.spec
           sed -i 's/#android.permissions =/android.permissions = WRITE_EXTERNAL_STORAGE,READ_EXTERNAL_STORAGE,INTERNET/g' buildozer.spec
@@ -38,19 +42,22 @@ jobs:
           sed -i 's/icon.filename = .\/data\/icon.png/icon.filename = icon.png/g' buildozer.spec
         fi
 
-    - name: Force Accept Buildozer SDK Licenses
+    - name: Force Accept All Android Licenses
       run: |
-        export BUILDOZER_WARN_ON_ROOT=0
-        buildozer android status || true
+        # قبول جماعي وصارم لكافة تراخيص الأندرويد في كل المسارات الممكنة
+        mkdir -p ~/.android
+        touch ~/.android/repositories.cfg
+        yes | sdkmanager --licenses || true
         
-        if [ -d "$HOME/.buildozer/android/platform/android-sdk" ]; then
-          mkdir -p $HOME/.buildozer/android/platform/android-sdk/licenses
-          echo -e "\n8933bad161ad4178b1185d1a37fbf41ea5269c55\nd56f174dd047f074b284505391a45109074b4095\n24333f1a61b68a41b1185d1a37fbf41ea5269c55\n84831b9409646a918e30573bab4c9c91346d8abd\n35dbf9750e6d5147eeaa343fe4260020bc32ede6" > $HOME/.buildozer/android/platform/android-sdk/licenses/android-sdk-license
-        fi
+        # إعلام بيلدوزر بأننا وافقنا على التراخيص مسبقاً عبر متغيرات البيئة
+        export ANDROID_SDK_ROOT=$ANDROID_HOME
+        export AUTO_ACCEPT_ANDROID_SDK_LICENSES=1
 
     - name: Build APK with Buildozer
       run: |
+        # تمرير متغيرات البيئة لداخل أمر بيلدوزر لقطع الطريق على أي نافذة تظهر له
         export BUILDOZER_WARN_ON_ROOT=0
+        export AUTO_ACCEPT_ANDROID_SDK_LICENSES=1
         buildozer android debug
       env:
         BUILDOZER_WARN_ON_ROOT: 0
@@ -58,5 +65,5 @@ jobs:
     - name: Upload APK Artifact
       uses: actions/upload-artifact@v4
       with:
-        name: Hussein-AI-Clean-Build-APK
+        name: Hussein-AI-Final-Ultimate-APK
         path: bin/*.apk
