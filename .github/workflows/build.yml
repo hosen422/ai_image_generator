@@ -11,7 +11,7 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
 
-    # 1. تهيئة التخزين المؤقت (Cache) لمجلدات بيلدوزر والـ SDK
+    # 1. التخزين المؤقت لضمان السرعة
     - name: Cache Buildozer packages
       uses: actions/cache@v4
       with:
@@ -22,14 +22,14 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-buildozer-
 
-    # 2. تثبيت جافا 17 الرسمية
+    # 2. تثبيت جافا 17
     - name: Set up JDK 17
       uses: actions/setup-java@v4
       with:
         distribution: 'temurin'
         java-version: '17'
 
-    # 3. تثبيت بايثون
+    # 3. تثبيت بايثون 3.10 المستقرة
     - name: Set up Python
       uses: actions/setup-python@v5
       with:
@@ -54,20 +54,24 @@ jobs:
           sed -i 's/icon.filename = .\/data\/icon.png/icon.filename = icon.png/g' buildozer.spec
         fi
 
-    # 6. الموافقة التلقائية على التراخيص وحقنها
-    - name: Pre-Accept Android SDK Licenses
+    # 6. الخدعة الكبرى: حل معضلة مسار sdkmanager وتهيئة التراخيص مسبقاً
+    - name: Pre-Accept Android SDK Licenses & Fix SDK Path
       run: |
         mkdir -p ~/.android
         touch ~/.android/repositories.cfg
-        if [ -f "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" ]; then
-          yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses || true
-        elif [ -f "$ANDROID_HOME/tools/bin/sdkmanager" ]; then
-          yes | $ANDROID_HOME/tools/bin/sdkmanager --licenses || true
-        fi
+        
+        # إنشاء المجلدات المتوقعة لبيلدوزر وحقن التراخيص مسبقاً
         mkdir -p $HOME/.buildozer/android/platform/android-sdk/licenses
         echo -e "\n8933bad161ad4178b1185d1a37fbf41ea5269c55\nd56f174dd047f074b284505391a45109074b4095\n24333f1a61b68a41b1185d1a37fbf41ea5269c55\n84831b9409646a918e30573bab4c9c91346d8abd\n35dbf9750e6d5147eeaa343fe4260020bc32ede6" > $HOME/.buildozer/android/platform/android-sdk/licenses/android-sdk-license
+        
+        # إجبار السيرفر على محاكاة المسار القديم الذي يبحث عنه بيلدوزر لـ sdkmanager
+        if [ -d "$ANDROID_HOME/cmdline-tools/latest/bin" ]; then
+          mkdir -p $HOME/.buildozer/android/platform/android-sdk/tools/bin
+          ln -s $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager $HOME/.buildozer/android/platform/android-sdk/tools/bin/sdkmanager || true
+          yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses || true
+        fi
 
-    # 7. إطلاق البناء
+    # 7. إطلاق البناء المباشر
     - name: Build APK with Buildozer
       run: |
         export BUILDOZER_WARN_ON_ROOT=0
@@ -75,7 +79,7 @@ jobs:
       env:
         BUILDOZER_WARN_ON_ROOT: 0
 
-    # 8. رفع الـ APK النهائي
+    # 8. رفع الملف الناتج
     - name: Upload APK Artifact
       uses: actions/upload-artifact@v4
       with:
