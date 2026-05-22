@@ -11,20 +11,31 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
 
-    # 1. تثبيت جافا 17 الرسمية المستقرة في السيرفر
+    # 1. تهيئة التخزين المؤقت (Cache) لمجلدات بيلدوزر والـ SDK
+    - name: Cache Buildozer packages
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.buildozer
+          .buildozer
+        key: ${{ runner.os }}-buildozer-${{ hashFiles('buildozer.spec') }}
+        restore-keys: |
+          ${{ runner.os }}-buildozer-
+
+    # 2. تثبيت جافا 17 الرسمية
     - name: Set up JDK 17
       uses: actions/setup-java@v4
       with:
         distribution: 'temurin'
         java-version: '17'
 
-    # 2. تثبيت بايثون المستقرة لبيئة البناء
+    # 3. تثبيت بايثون
     - name: Set up Python
       uses: actions/setup-python@v5
       with:
         python-version: '3.10'
 
-    # 3. تثبيت المتطلبات الرسمية لنظام أوبونتو في السيرفر (بما فيها zlib)
+    # 4. تثبيت متطلبات النظام
     - name: Install Android Dependencies
       run: |
         sudo apt-get update
@@ -32,7 +43,7 @@ jobs:
         pip install --upgrade pip
         pip install cython virtualenv flet buildozer
 
-    # 4. تنظيف الإعدادات وفرض بايثون 3.11 المتوافقة مع Flet
+    # 5. ضبط إعدادات ملف buildozer
     - name: Configure Buildozer Spec
       run: |
         if [ -f "buildozer.spec" ]; then
@@ -43,24 +54,20 @@ jobs:
           sed -i 's/icon.filename = .\/data\/icon.png/icon.filename = icon.png/g' buildozer.spec
         fi
 
-    # 5. الخدعة السحرية: الموافقة التلقائية على التراخيص وحقنها في مسار بيلدوزر المتوقع
+    # 6. الموافقة التلقائية على التراخيص وحقنها
     - name: Pre-Accept Android SDK Licenses
       run: |
         mkdir -p ~/.android
         touch ~/.android/repositories.cfg
-        
-        # قبول الرخص من الـ sdkmanager الافتراضي للسيرفر
         if [ -f "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" ]; then
           yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses || true
         elif [ -f "$ANDROID_HOME/tools/bin/sdkmanager" ]; then
           yes | $ANDROID_HOME/tools/bin/sdkmanager --licenses || true
         fi
-        
-        # إنشاء المجلد المتوقع لبيلدوزر وحقن ملف الموافقة فيه مسبقاً
         mkdir -p $HOME/.buildozer/android/platform/android-sdk/licenses
         echo -e "\n8933bad161ad4178b1185d1a37fbf41ea5269c55\nd56f174dd047f074b284505391a45109074b4095\n24333f1a61b68a41b1185d1a37fbf41ea5269c55\n84831b9409646a918e30573bab4c9c91346d8abd\n35dbf9750e6d5147eeaa343fe4260020bc32ede6" > $HOME/.buildozer/android/platform/android-sdk/licenses/android-sdk-license
 
-    # 6. إطلاق البناء المباشر
+    # 7. إطلاق البناء
     - name: Build APK with Buildozer
       run: |
         export BUILDOZER_WARN_ON_ROOT=0
@@ -68,7 +75,7 @@ jobs:
       env:
         BUILDOZER_WARN_ON_ROOT: 0
 
-    # 7. رفع ملف الـ APK النهائي كأثر (Artifact) للتحميل
+    # 8. رفع الـ APK النهائي
     - name: Upload APK Artifact
       uses: actions/upload-artifact@v4
       with:
